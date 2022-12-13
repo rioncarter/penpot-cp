@@ -10,6 +10,7 @@
    [app.common.geom.point :as gpt]
    [app.common.geom.shapes :as gsh]
    [app.common.spec :as us]
+   [app.common.types.pages-list :as ctpl]
    [app.common.types.shape-tree :as ctst]
    [clojure.spec.alpha :as s]))
 
@@ -61,6 +62,17 @@
   [container shape-id f]
   (update-in container [:objects shape-id] f))
 
+(defn get-component-shape
+  "Get the parent shape linked to a component for this shape, if any"
+  [objects shape]
+  (if-not (:shape-ref shape)
+    nil
+    (if (:component-id shape)
+      shape
+      (if-let [parent-id (:parent-id shape)]
+        (get-component-shape objects (get objects parent-id))
+        nil))))
+
 (defn make-component-shape
   "Clone the shape and all children. Generate new ids and detach
   from parent and frame. Update the original shapes to have links
@@ -105,15 +117,22 @@
     (ctst/clone-object shape nil objects update-new-shape update-original-shape)))
 
 (defn make-component-instance
-  "Clone the shapes of the component, generating new names and ids, and linking
+  "Generate a new instance of the component inside the given container.
+
+  Clone the shapes of the component, generating new names and ids, and linking
   each new shape to the corresponding one of the component. Place the new instance
   coordinates in the given position."
-  ([container component component-file-id position]
-   (make-component-instance container component component-file-id position {}))
+  ([container component library-data position components-v2]
+   (make-component-instance container component library-data position components-v2 {}))
 
-  ([container component component-file-id position
+  ([container component library-data position components-v2
     {:keys [main-instance? force-id] :or {main-instance? false force-id nil}}]
-   (let [component-shape (get-shape component (:id component))
+   (let [component-page  (when components-v2
+                           (ctpl/get-page library-data (:main-instance-page component)))
+         component-shape (if components-v2
+                           (-> (get-shape component-page (:main-instance-id component))
+                               (assoc :parent-id nil))
+                           (get-shape component (:id component)))
 
          orig-pos  (gpt/point (:x component-shape) (:y component-shape))
          delta     (gpt/subtract position orig-pos)
@@ -143,8 +162,8 @@
                (assoc :shape-ref (:id original-shape))
 
                (nil? (:parent-id original-shape))
-               (assoc :component-id (:id original-shape)
-                      :component-file component-file-id
+               (assoc :component-id (:id component)
+                      :component-file (:id library-data)
                       :component-root? true
                       :name new-name)
 
@@ -157,7 +176,7 @@
          [new-shape new-shapes _]
          (ctst/clone-object component-shape
                             nil
-                            (get component :objects)
+                            (if components-v2 (:objects component-page) (:objects component))
                             update-new-shape
                             (fn [object _] object)
                             force-id)]

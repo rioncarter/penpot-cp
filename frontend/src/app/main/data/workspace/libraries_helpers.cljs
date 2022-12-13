@@ -7,6 +7,7 @@
 (ns app.main.data.workspace.libraries-helpers
   (:require
    [app.common.data :as d]
+   [app.common.data.macros :as dm]
    [app.common.geom.point :as gpt]
    [app.common.geom.shapes :as gsh]
    [app.common.logging :as log]
@@ -19,6 +20,7 @@
    [app.common.types.component :as ctk]
    [app.common.types.container :as ctn]
    [app.common.types.file :as ctf]
+   [app.common.types.pages-list :as ctpl]
    [app.common.types.shape-tree :as ctst]
    [app.common.types.typography :as cty]
    [app.main.data.workspace.groups :as dwg]
@@ -99,27 +101,38 @@
 (defn duplicate-component
   "Clone the root shape of the component and all children. Generate new
   ids from all of them."
-  [component main-instance-page main-instance-shape]
-  (let [position (gpt/add (gpt/point (:x main-instance-shape) (:y main-instance-shape))
+  [component library-data]
+  (let [main-instance-page  (ctpl/get-page library-data (:main-instance-page component))
+        main-instance-shape (when main-instance-page
+                              (ctn/get-shape main-instance-page (:main-instance-id component)))
+
+        position (gpt/add (gpt/point (:x main-instance-shape) (:y main-instance-shape))
                           (gpt/point (+ (:width main-instance-shape) 50) 0))
 
-        component-root (ctk/get-component-root component)
+        components-v2 (dm/get-in library-data [:options :components-v2])
+
+        component-root (when-not components-v2
+                         (d/seek #(nil? (:parent-id %)) (vals (:objects component))))
 
         [new-component-shape new-component-shapes _]
-        (ctst/clone-object component-root
-                           nil
-                           (get component :objects)
-                           identity)
-
+        (if components-v2
+          [nil [] nil]
+          (ctst/clone-object component-root
+                             nil
+                             (get component :objects)
+                             identity))
 
         [new-instance-shape new-instance-shapes]
         (when (and (some? main-instance-page) (some? main-instance-shape))
           (ctn/make-component-instance main-instance-page
-                                       {:id (:id new-component-shape)
-                                        :name (:name new-component-shape)
-                                        :objects (d/index-by :id new-component-shapes)}
-                                       (:component-file main-instance-shape)
-                                       position))]
+                                       (if components-v2
+                                         component
+                                         {:id (:id new-component-shape)
+                                          :name (:name new-component-shape)
+                                          :objects (d/index-by :id new-component-shapes)})
+                                       library-data
+                                       position
+                                       components-v2))]
 
     [new-component-shape new-component-shapes
      new-instance-shape new-instance-shapes]))
@@ -127,10 +140,17 @@
 (defn generate-instantiate-component
   "Generate changes to create a new instance from a component."
   [it file-id component-id position page libraries]
-  (let [component       (cph/get-component libraries file-id component-id)
+  (let [component     (ctf/get-component libraries file-id component-id)
+        library       (get libraries file-id)
+
+        components-v2 (dm/get-in library [:data :options :components-v2])
 
         [new-shape new-shapes]
-        (ctn/make-component-instance page component file-id position)
+        (ctn/make-component-instance page
+                                     component
+                                     (:data library)
+                                     position
+                                     components-v2)
 
         changes (reduce #(pcb/add-object %1 %2 {:ignore-touched true})
                         (pcb/empty-changes it (:id page))
@@ -451,7 +471,7 @@
   [changes libraries container shape-id reset? components-v2]
   (log/debug :msg "Sync shape direct" :shape (str shape-id) :reset? reset?)
   (let [shape-inst    (ctn/get-shape container shape-id)
-        component     (cph/get-component libraries
+        component     (ctf/get-component libraries
                                          (:component-file shape-inst)
                                          (:component-id shape-inst))
         component     (or component
@@ -588,7 +608,7 @@
   [changes libraries container shape-id]
   (log/debug :msg "Sync shape inverse" :shape (str shape-id))
   (let [shape-inst    (ctn/get-shape container shape-id)
-        component     (cph/get-component libraries
+        component     (ctf/get-component libraries
                                          (:component-file shape-inst)
                                          (:component-id shape-inst))
         shape-main    (ctn/get-shape component (:shape-ref shape-inst))

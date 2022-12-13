@@ -596,11 +596,11 @@
          (fn []
            (let [undo-id (uuid/next)]
              (if (empty? selected-components)
-             (st/emit! (dwl/duplicate-component {:id (:component-id @state)}))
-             (do
-               (st/emit! (dwu/start-undo-transaction undo-id))
-               (apply st/emit! (map #(dwl/duplicate-component {:id %}) selected-components))
-               (st/emit! (dwu/commit-undo-transaction undo-id)))))))
+               (st/emit! (dwl/duplicate-component file-id (:component-id @state)))
+               (do
+                 (st/emit! (dwu/start-undo-transaction undo-id))
+                 (apply st/emit! (map (partial dwl/duplicate-component file-id) selected-components))
+                 (st/emit! (dwu/commit-undo-transaction undo-id)))))))
 
         on-delete
         (mf/use-fn

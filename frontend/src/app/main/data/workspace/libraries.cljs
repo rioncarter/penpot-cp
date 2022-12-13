@@ -367,12 +367,13 @@
 
 (defn duplicate-component
   "Create a new component copied from the one with the given id."
-  [{:keys [id] :as params}]
+  [library-id component-id]
   (ptk/reify ::duplicate-component
     ptk/WatchEvent
     (watch [it state _]
       (let [libraries      (wsh/get-libraries state)
-            component      (cph/get-component libraries id)
+            library        (get libraries library-id)
+            component      (ctkl/get-component (:data library) component-id)
             all-components (-> state :workspace-data :components vals)
             unames         (into #{} (map :name) all-components)
             new-name       (ctst/generate-unique-name unames (:name component))
@@ -381,18 +382,20 @@
 
             main-instance-page  (when components-v2
                                   (wsh/lookup-page state (:main-instance-page component)))
-            main-instance-shape (when components-v2
-                                  (ctn/get-shape main-instance-page (:main-instance-id component)))
 
-            [new-component-shape new-component-shapes
+            new-component  (assoc component :id (uuid/next))
+
+            [new-component-shape new-component-shapes  ; <- null in components-v2
              new-main-instance-shape new-main-instance-shapes]
-            (dwlh/duplicate-component component main-instance-page main-instance-shape)
+            (dwlh/duplicate-component new-component (:data library))
 
             changes (-> (pcb/empty-changes it nil)
                         (pcb/with-page main-instance-page)
                         (pcb/with-objects (:objects main-instance-page))
                         (pcb/add-objects new-main-instance-shapes {:ignore-touched true})
-                        (pcb/add-component (:id new-component-shape)
+                        (pcb/add-component (if components-v2
+                                             (:id new-component)
+                                             (:id new-component-shape))
                                            (:path component)
                                            new-name
                                            new-component-shapes
@@ -432,13 +435,17 @@
             component (ctf/get-deleted-component file-data component-id)
             page      (ctpl/get-page file-data (:main-instance-page component))
 
+            components-v2
+            (features/active-feature? state :components-v2)
+
                                         ; Make a new main instance, with the same id of the original
             [_main-instance shapes]
             (ctn/make-component-instance page
                                          component
-                                         (:id file-data)
+                                         file-data
                                          (gpt/point (:main-instance-x component)
                                                     (:main-instance-y component))
+                                         components-v2
                                          {:main-instance? true
                                           :force-id (:main-instance-id component)})
 

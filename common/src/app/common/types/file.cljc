@@ -12,7 +12,6 @@
     [app.common.geom.point :as gpt]
     [app.common.geom.shapes :as gsh]
     [app.common.pages.common :refer [file-version]]
-    [app.common.pages.helpers :as cph]
     [app.common.types.color :as ctc]
     [app.common.types.colors-list :as ctcl]
     [app.common.types.component :as ctk]
@@ -262,8 +261,9 @@
                     [new-shape new-shapes]
                     (ctn/make-component-instance page
                                                  component
-                                                 (:id file-data)
+                                                 file-data
                                                  position
+                                                 false
                                                  {:main-instance? true})
 
                     add-shapes
@@ -326,8 +326,9 @@
                 [main-instance-shape main-instance-shapes]
                 (ctn/make-component-instance page
                                              component
-                                             (:id file-data)
+                                             file-data
                                              position
+                                             true
                                              {:main-instance? true})
 
                 ; Add all shapes of the main instance to the library page
@@ -500,7 +501,7 @@
              (show-component [shape objects]
                (if (nil? (:shape-ref shape))
                  ""
-                 (let [root-shape        (cph/get-component-shape objects shape)
+                 (let [root-shape        (ctn/get-component-shape objects shape)
                        component-id      (when root-shape (:component-id root-shape))
                        component-file-id (when root-shape (:component-file root-shape))
                        component-file    (when component-file-id (get libraries component-file-id nil))
