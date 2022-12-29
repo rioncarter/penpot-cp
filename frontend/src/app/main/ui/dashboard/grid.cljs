@@ -253,17 +253,15 @@
              (st/emit! (dd/toggle-file-select file)))
 
            (let [position (dom/get-client-position event)]
-             (.log js/console "event" (clj->js event))
-             (prn "position" position)
+
+
              (if (and (nil? (:y position)) (nil? (:x position)))
                (let [target-element (dom/get-target event)
                      points (dom/get-bounding-rect target-element)
-                     position? (let [x (:top points)
-                                     y (:left points)]
+                     position? (let [y (:top points)
+                                     x (:left points)]
                                  (gpt/point x y))]
 
-                 (.log js/console "target" (clj->js target-element))
-                 (.log js/console "position?" (clj->js position?))
                  (swap! local assoc
                         :menu-open true
                         :menu-pos position?))
@@ -331,7 +329,6 @@
          :on-click on-menu-click
          :on-key-down (fn [event]
                         (when (kbd/enter? event)
-                          (prn "entro en on-menu-click")
                           (on-menu-click event)))}
         i/actions
         (when selected?
