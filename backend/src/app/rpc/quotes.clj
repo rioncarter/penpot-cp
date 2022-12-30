@@ -286,7 +286,8 @@
   (us/assert! ::files-per-project quote)
   (-> quote
       (assoc ::default (cf/get :quotes-comment-threads-per-file Integer/MAX_VALUE))
-      (assoc ::quote-sql [sql:get-quotes-4 target project-id profile-id team-id profile-id profile-id])
+      (assoc ::quote-sql [sql:get-quotes-4 target file-id profile-id project-id
+                          profile-id team-id profile-id profile-id])
       (assoc ::count-sql [sql:get-comment-threads-per-file file-id])
       (generic-check!)))
 

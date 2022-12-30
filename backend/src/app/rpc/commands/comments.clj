@@ -19,6 +19,7 @@
    [app.rpc.commands.teams :as teams]
    [app.rpc.doc :as-alias doc]
    [app.rpc.quotes :as quotes]
+   [app.util.pointer-map :as pmap]
    [app.util.retry :as rtry]
    [app.util.services :as sv]
    [app.util.time :as dt]
@@ -40,17 +41,17 @@
     where f.id = ?
       and f.deleted_at is null")
 
-;; FIXME: objects-map not supported
 (defn- get-file
   "A specialized version of get-file for comments module."
   [conn file-id page-id]
-  (if-let [{:keys [data] :as file} (some-> (db/exec-one! conn [sql:get-file file-id]) (files/decode-row))]
-    (-> file
-        (assoc :page-name (dm/get-in data [:pages-index page-id :name]))
-        (assoc :page-id page-id))
-    (ex/raise :type :not-found
-              :code :object-not-found
-              :hint "file not found")))
+  (binding [pmap/*load-fn* (partial files/load-pointer conn file-id)]
+    (if-let [{:keys [data] :as file} (some-> (db/exec-one! conn [sql:get-file file-id]) (files/decode-row))]
+      (-> file
+          (assoc :page-name (dm/get-in data [:pages-index page-id :name]))
+          (assoc :page-id page-id))
+      (ex/raise :type :not-found
+                :code :object-not-found
+                :hint "file not found"))))
 
 (defn- get-comment-thread
   [conn thread-id & {:keys [for-update?]}]
