@@ -24,9 +24,7 @@
    [app.util.time :as dt]
    [clojure.spec.alpha :as s]))
 
-;; (defn get-project-id
-;;   [conn project-id]
-;;   (:team-id (db/get-by-id conn :project project-id {:columns [:team-id]})))
+;; --- GENERAL PURPOSE INTERNAL HELPERS
 
 (defn decode-row
   [{:keys [participants position] :as row}]
@@ -41,10 +39,6 @@
      join project as p on (p.id = f.project_id)
     where f.id = ?
       and f.deleted_at is null")
-
-;; (defn- retrieve-page-name
-;;   [{:keys [data]} page-id]
-;;   (dm/get-in data [:pages-index page-id :name])
 
 ;; FIXME: objects-map not supported
 (defn- get-file
