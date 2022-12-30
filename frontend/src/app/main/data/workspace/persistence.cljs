@@ -157,13 +157,16 @@
                                     (rx/mapcat (fn [[page-id frames]]
                                                  (->> frames (map #(vector page-id %)))))
                                     (rx/map (fn [[page-id frame-id]] (dwt/update-thumbnail (:id file) page-id frame-id))))
+
                                (->> (rx/from lagged)
-                                    (rx/merge-map (fn [{:keys [changes] :as entry}]
-                                                    (rx/merge
-                                                     (rx/from
-                                                      (for [[page-id changes] (group-by :page-id changes)]
-                                                        (dch/update-indices page-id changes)))
-                                                     (rx/of (shapes-changes-persisted file-id entry))))))))))
+                                    (rx/filter #(not= sid (:session-id %)))
+                                    (rx/merge-map
+                                     (fn [{:keys [changes] :as entry}]
+                                       (rx/merge
+                                        (rx/from
+                                         (for [[page-id changes] (group-by :page-id changes)]
+                                           (dch/update-indices page-id changes)))
+                                        (rx/of (shapes-changes-persisted file-id entry))))))))))
                (rx/catch (fn [cause]
                            (rx/concat
                             (if (= :authentication (:type cause))
