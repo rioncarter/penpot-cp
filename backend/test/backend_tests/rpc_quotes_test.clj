@@ -43,7 +43,7 @@
                         (let [error (:error out)]
                           (t/is (= :restriction (th/ex-type error)))
                           (t/is (= :max-quote-reached (th/ex-code error)))
-                          (t/is (= ::quotes/teams-per-profile (:target (ex-data error)))))))]
+                          (t/is (= "teams-per-profile" (:target (ex-data error)))))))]
 
       (th/db-insert! :usage-quote
                      {:profile-id (:id profile-2)
@@ -89,7 +89,7 @@
                         (let [error (:error out)]
                           (t/is (= :restriction (th/ex-type error)))
                           (t/is (= :max-quote-reached (th/ex-code error)))
-                          (t/is (= ::quotes/projects-per-team (:target (ex-data error)))))))]
+                          (t/is (= "projects-per-team" (:target (ex-data error)))))))]
 
       (check-ok! 1)
       (check-ko! 2)
@@ -152,7 +152,7 @@
                         (let [error (:error out)]
                           (t/is (= :restriction (th/ex-type error)))
                           (t/is (= :max-quote-reached (th/ex-code error)))
-                          (t/is (= ::quotes/invitations-per-team (:target (ex-data error)))))))]
+                          (t/is (= "invitations-per-team" (:target (ex-data error)))))))]
 
       (th/db-insert! :usage-quote
                      {:profile-id (:id profile-2)
@@ -225,7 +225,7 @@
                         (let [error (:error out)]
                           (t/is (= :restriction (th/ex-type error)))
                           (t/is (= :max-quote-reached (th/ex-code error)))
-                          (t/is (= ::quotes/profiles-per-team (:target (ex-data error)))))))]
+                          (t/is (= "profiles-per-team" (:target (ex-data error)))))))]
 
       (th/create-team-role* {:team-id (:default-team-id profile-1)
                              :profile-id (:id profile-2)
@@ -283,8 +283,7 @@
                         (let [error (:error out)]
                           (t/is (= :restriction (th/ex-type error)))
                           (t/is (= :max-quote-reached (th/ex-code error)))
-                          (t/is (= ::quotes/files-per-project (:target (ex-data error)))))))]
-
+                          (t/is (= "files-per-project" (:target (ex-data error)))))))]
 
       (th/db-insert! :usage-quote
                      {:project-id (:id project-2)
